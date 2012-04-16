@@ -125,10 +125,13 @@ module Resque
       $0 = "resque: Starting"
       startup
 
+			blocking = interval > 0 && blockable?
+
       loop do
         break if shutdown?
 
-        if not paused? and job = reserve
+				procline "Blocked reserving for #{@queues.join(', ')}" if blocking
+				if not paused? and job = blocking ? blocking_reserve(interval) : reserve
           log "got: #{job.inspect}"
           job.worker = self
           run_hook :before_fork, job
@@ -148,9 +151,11 @@ module Resque
           @child = nil
         else
           break if interval.zero?
-          log! "Sleeping for #{interval} seconds"
-          procline paused? ? "Paused" : "Waiting for #{@queues.join(',')}"
-          sleep interval
+					unless blocking
+						log! "Sleeping for #{interval} seconds"
+						procline paused? ? "Paused" : "Waiting for #{@queues.join(',')}"
+						sleep interval
+					end
         end
       end
 
@@ -190,6 +195,10 @@ module Resque
       end
     end
 
+		def blockable?
+			@queues.size == 1 || !redis.respond_to?(:nodes)
+		end
+
     # Attempts to grab a job off one of the provided queues. Returns
     # nil if no job can be found.
     def reserve
@@ -203,6 +212,20 @@ module Resque
     rescue ThreadError
       nil
     end
+
+		def blocking_reserve(timeout)
+			log! "Checking #{queues.join(', ')} (blocking, timeout = #{timeout})"
+			if job = Resque::Job.blocking_reserve(queues, timeout)
+				log! "Found job on #{job.queue}"
+				return job
+			end
+
+			nil
+		rescue Exception => e
+			log "Error block-reserving job: #{e.inspect}"
+			log e.backtrace.join("\n")
+			raise e
+		end
 
     # Returns a list of queues to use when searching for a job.
     # A splat ("*") means you want every queue (in alpha order) - this

@@ -164,6 +164,13 @@ module Resque
     end
   end
 
+	# Blocking pops a job off a list of queues. Queuelist should be an array.
+	#
+	# Returns a Ruby object.
+	def bpop(queuelist, timeout)
+		redis.blpop(*(queuelist.map {|queue| "queue:#{queue}"}) << timeout)
+	end
+
   # Returns an integer representing the size of a queue.
   # Queue name should be a string.
   def size(queue)

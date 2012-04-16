@@ -46,7 +46,7 @@ describe "Resque::Worker" do
     def self.on_failure_record_failure(exception, *job_args)
       @@exception = exception
     end
-    
+
     def self.exception
       @@exception
     end
@@ -406,7 +406,7 @@ describe "Resque::Worker" do
   it "returns PID of running process" do
     assert_equal @worker.to_s.split(":")[1].to_i, @worker.pid
   end
-  
+
   it "requeue failed queue" do
     queue = 'good_job'
     Resque::Failure.create(:exception => Exception.new, :worker => Resque::Worker.new(queue), :queue => queue, :payload => {'class' => 'GoodJob'})
@@ -425,5 +425,42 @@ describe "Resque::Worker" do
     Resque::Failure.remove_queue(queue)
     assert_equal queue2, Resque::Failure.all(0)['queue']
     assert_equal 1, Resque::Failure.count
+  end
+
+	it "can blocking grab a job from its queues" do
+    job = @worker.blocking_reserve(1)
+    assert_not_nil job
+    assert_equal 0, Resque.size(:jobs)
+  end
+
+  it "can blocking grab nothing from an empty queue" do
+    worker = Resque::Worker.new(:empty)
+    job = worker.blocking_reserve(1)
+    assert_nil job
+  end
+
+  it "can do blocking work" do
+    shutdown_thread = Thread.new do
+      sleep 2
+      @worker.shutdown
+    end
+
+    @worker.work(1)
+
+    shutdown_thread.join
+  end
+
+  it "can blocking reserve from multiple queues" do
+    Resque::Job.create(:high, GoodJob)
+    Resque::Job.create(:critical, GoodJob)
+
+    worker = Resque::Worker.new(:critical, :high)
+
+    worker.blocking_reserve(5)
+    assert_equal 1, Resque.size(:high)
+    assert_equal 0, Resque.size(:critical)
+
+    worker.blocking_reserve(5)
+    assert_equal 0, Resque.size(:high)
   end
 end
