@@ -158,6 +158,10 @@ module Resque
     decode redis.lpop("queue:#{queue}")
   end
 
+  def bpop(queuelist, timeout)
+    redis.blpop(*(queuelist.map {|queue| "queue:#{queue}"}) << timeout.to_int)
+  end
+
   # Returns an integer representing the size of a queue.
   # Queue name should be a string.
   def size(queue)

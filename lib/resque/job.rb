@@ -98,6 +98,12 @@ module Resque
       new(queue, payload)
     end
 
+    def self.blocking_reserve(queues, timeout)
+      return unless payload = Resque.bpop(queues, timeout)  # payload = ["namespace:queue:job", payload]
+      queue = payload[0][16..-1]
+      new(queue, payload[1])
+    end
+
     # Attempts to perform the work represented by this job instance.
     # Calls #perform on the class given in the payload with the
     # arguments given in the payload.
@@ -210,10 +216,10 @@ module Resque
       @after_hooks ||= Plugin.after_hooks(payload_class)
     end
 
-    def failure_hooks 
+    def failure_hooks
       @failure_hooks ||= Plugin.failure_hooks(payload_class)
     end
-    
+
     def run_failure_hooks(exception)
       job_args = args || []
       failure_hooks.each { |hook| payload_class.send(hook, exception, *job_args) }
