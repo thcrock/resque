@@ -2,58 +2,58 @@ require 'test_helper'
 require 'resque/server/test_helper'
  
 # Root path test
-describe "on GET to /" do
-  before { get "/" }
+context "on GET to /" do
+  setup { get "/" }
 
-  it "redirect to overview" do
+  test "redirect to overview" do
     follow_redirect!
   end
 end
 
 # Global overview
-describe "on GET to /overview" do
-  before { get "/overview" }
+context "on GET to /overview" do
+  setup { get "/overview" }
 
-  it "should at least display 'queues'" do
+  test "should at least display 'queues'" do
     assert last_response.body.include?('Queues')
   end
 end
 
 # Working jobs
-describe "on GET to /working" do
-  before { get "/working" }
+context "on GET to /working" do
+  setup { get "/working" }
 
   should_respond_with_success
 end
 
 # Failed
-describe "on GET to /failed" do
-  before { get "/failed" }
+context "on GET to /failed" do
+  setup { get "/failed" }
 
   should_respond_with_success
 end
 
 # Stats 
-describe "on GET to /stats/resque" do
-  before { get "/stats/resque" }
+context "on GET to /stats/resque" do
+  setup { get "/stats/resque" }
 
   should_respond_with_success
 end
 
-describe "on GET to /stats/redis" do
-  before { get "/stats/redis" }
+context "on GET to /stats/redis" do
+  setup { get "/stats/redis" }
 
   should_respond_with_success
 end
 
-describe "on GET to /stats/resque" do
-  before { get "/stats/keys" }
+context "on GET to /stats/resque" do
+  setup { get "/stats/keys" }
 
   should_respond_with_success
 end
 
-describe "also works with slash at the end" do
-  before { get "/working/" }
+context "also works with slash at the end" do
+  setup { get "/working/" }
 
   should_respond_with_success
 end
