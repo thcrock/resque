@@ -147,6 +147,9 @@ module Resque
 
           done_working
           @child = nil
+          log! "Waiting for #{interval} seconds"
+          procline paused? ? "Paused" : "Taking a break from #{@queues.join(',')}"
+          sleep interval
         else
           break if interval.zero?
           unless blocking
